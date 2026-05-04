@@ -1,0 +1,26 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: train_db
+      POSTGRES_USER: ilya
+      POSTGRES_PASSWORD: trainer123
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/train_db
+      DB_USER: ilya
+      DB_PASSWORD: trainer123
+
+volumes:
+  postgres_data:
