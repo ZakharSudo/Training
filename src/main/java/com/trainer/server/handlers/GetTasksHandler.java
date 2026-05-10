@@ -9,9 +9,11 @@ import com.trainer.util.JsonUtil;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class GetTasksHandler implements HttpHandler {
     private final TaskDao taskDao = new TaskDao();
@@ -25,28 +27,42 @@ public class GetTasksHandler implements HttpHandler {
 
         try {
             List<Task> tasks = taskDao.getAllTasks();
-
+            
+            List<Map<String, Object>> simplifiedTasks = tasks.stream()
+                .map(task -> {
+                    Map<String, Object> t = new HashMap<>();
+                    t.put("id", task.getId());
+                    t.put("title", task.getTitle());
+                    t.put("description", task.getDescription());
+                    t.put("type", task.getType());
+                    t.put("maxPoints", task.getMaxPoints());
+                    return t;
+                })
+                .collect(Collectors.toList());
+            
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
-            response.put("tasks", tasks);
-
+            response.put("tasks", simplifiedTasks);
+            
             String jsonResponse = JsonUtil.toJson(response);
-            byte[] responseBytes = jsonResponse.getBytes(StandardCharsets.UTF_8);
-
+            byte[] bytes = jsonResponse.getBytes(StandardCharsets.UTF_8);
+            
             exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
-            exchange.sendResponseHeaders(200, responseBytes.length);
-            OutputStream os = exchange.getResponseBody();
-            os.write(responseBytes);
-            os.close();
-
-        } catch (Exception e) {
-            String error = JsonUtil.toJson(Map.of("success", false, "error", e.getMessage()));
-            byte[] errorBytes = error.getBytes(StandardCharsets.UTF_8);
-            exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
-            exchange.sendResponseHeaders(500, errorBytes.length);
-            OutputStream os = exchange.getResponseBody();
-            os.write(errorBytes);
-            os.close();
+            exchange.sendResponseHeaders(200, bytes.length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(bytes);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", "Database error: " + e.getMessage());
+            String jsonError = JsonUtil.toJson(error);
+            byte[] bytes = jsonError.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(500, bytes.length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(bytes);
+            }
         }
     }
 }

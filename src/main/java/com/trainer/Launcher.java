@@ -28,6 +28,16 @@ public class Launcher {
         });
 
         server.setExecutor(null);
+
+server.createContext("/test", exchange -> {
+    String response = "{\"status\":\"ok\",\"message\":\"Server works!\"}";
+    byte[] bytes = response.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    exchange.getResponseHeaders().set("Content-Type", "application/json");
+    exchange.sendResponseHeaders(200, bytes.length);
+    exchange.getResponseBody().write(bytes);
+    exchange.getResponseBody().close();
+});
+
         server.start();
 
         System.out.println("==========================================");

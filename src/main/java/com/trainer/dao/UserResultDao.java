@@ -1,11 +1,41 @@
 package com.trainer.dao;
 
-import com.trainer.model.UserResult;
 
+import com.trainer.model.UserResult;
 import java.sql.*;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 public class UserResultDao {
+
+    public Map<String, Object> getUserProgress(UUID userId) throws SQLException {
+    Map<String, Object> progress = new HashMap<>();
+    String sql = "SELECT total_points, tasks_completed, test_points, error_spotting_points, open_tasks_points, last_activity FROM user_progress WHERE user_id = ?";
+    
+    try (Connection conn = DatabaseConnection.getConnection();
+         PreparedStatement stmt = conn.prepareStatement(sql)) {
+        stmt.setObject(1, userId);
+        ResultSet rs = stmt.executeQuery();
+        
+        if (rs.next()) {
+            progress.put("totalPoints", rs.getInt("total_points"));
+            progress.put("tasksCompleted", rs.getInt("tasks_completed"));
+            progress.put("testPoints", rs.getInt("test_points"));
+            progress.put("errorSpottingPoints", rs.getInt("error_spotting_points"));
+            progress.put("openTasksPoints", rs.getInt("open_tasks_points"));
+            progress.put("lastActivity", rs.getTimestamp("last_activity").toString());
+        } else {
+            progress.put("totalPoints", 0);
+            progress.put("tasksCompleted", 0);
+            progress.put("testPoints", 0);
+            progress.put("errorSpottingPoints", 0);
+            progress.put("openTasksPoints", 0);
+            progress.put("lastActivity", null);
+        }
+    }
+    return progress;
+}
 
     // Проверить, проходил ли пользователь задание
     public boolean hasUserCompletedTask(UUID userId, UUID taskId) throws SQLException {

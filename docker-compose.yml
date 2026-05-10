@@ -1,26 +1,36 @@
+
 services:
-  db:
-    image: postgres:17
+  postgres:
+    image: postgres:15
+    container_name: trainer-postgres
     environment:
-      POSTGRES_DB: train_db
-      POSTGRES_USER: ilya
+      POSTGRES_DB: trainer_db
+      POSTGRES_USER: trainer
       POSTGRES_PASSWORD: trainer123
     ports:
       - "5432:5432"
     volumes:
-      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
       - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trainer -d trainer_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  backend:
+  app:
     build: .
+    container_name: trainer-app
     ports:
-      - "8080:8080"
-    depends_on:
-      - db
+      - "8888:8888"
     environment:
-      DB_URL: jdbc:postgresql://db:5432/train_db
-      DB_USER: ilya
+      DB_URL: jdbc:postgresql://postgres:5432/trainer_db
+      DB_USER: trainer
       DB_PASSWORD: trainer123
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   postgres_data:

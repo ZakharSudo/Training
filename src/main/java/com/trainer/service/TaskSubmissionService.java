@@ -1,5 +1,7 @@
 package com.trainer.service;
 
+import java.util.HashSet;
+import java.util.Set;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.trainer.dao.TaskDao;
@@ -62,20 +64,46 @@ public class TaskSubmissionService {
     }
 
     private int checkTestAnswer(UUID taskId, String answer, int maxPoints) throws Exception {
-        List<TaskAnswer> correctAnswers = taskDao.getTaskAnswers(taskId).stream()
-                .filter(TaskAnswer::isCorrect)
-                .collect(Collectors.toList());
-
-        Set<String> userAnswers = new HashSet<>(Arrays.asList(answer.split(",")));
-        int totalCorrect = correctAnswers.size();
-        int userCorrectCount = userAnswers.size();
-
-        if (userCorrectCount == totalCorrect) {
-            return maxPoints;
-        } else {
-            return (int) ((double) userCorrectCount / totalCorrect * maxPoints);
+    List<TaskAnswer> allAnswers = taskDao.getTaskAnswers(taskId);
+    List<TaskAnswer> correctAnswers = allAnswers.stream()
+            .filter(TaskAnswer::isCorrect)
+            .collect(Collectors.toList());
+    
+    // Парсим ответ пользователя (формат: "id1,id2" или просто "id1")
+    Set<UUID> userAnswerIds = new HashSet<>();
+    for (String part : answer.split(",")) {
+        try {
+            userAnswerIds.add(UUID.fromString(part.trim()));
+        } catch (IllegalArgumentException e) {
+            // Если пришёл текст, а не UUID — ищем совпадение по тексту
+            String trimmed = part.trim().toLowerCase();
+            allAnswers.stream()
+                .filter(a -> a.getAnswerText().toLowerCase().contains(trimmed))
+                .findFirst()
+                .ifPresent(a -> userAnswerIds.add(a.getId()));
         }
     }
+    
+    Set<UUID> correctIds = correctAnswers.stream()
+            .map(TaskAnswer::getId)
+            .collect(Collectors.toSet());
+    
+    // Подсчёт правильных ответов
+    long userCorrect = userAnswerIds.stream().filter(correctIds::contains).count();
+    
+    // Процент правильных ответов
+    if (correctIds.isEmpty()) return 0;
+    
+    double percentage = (double) userCorrect / correctIds.size();
+    int points = (int) (percentage * maxPoints);
+    
+    // Если все ответы правильные — даём полный балл
+    if (userCorrect == correctIds.size() && userCorrect == userAnswerIds.size()) {
+        points = maxPoints;
+    }
+    
+    return Math.min(points, maxPoints);
+}
 
     private int checkErrorSpotting(UUID taskId, String answer, int maxPoints) throws Exception {
         String expectedErrorsJson = taskDao.getExpectedErrors(taskId);
