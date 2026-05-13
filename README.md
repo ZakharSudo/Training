@@ -65,7 +65,8 @@ psql.exe -U postgres -h localhost -d trainer_db -c "GRANT ALL PRIVILEGES ON SCHE
 psql.exe -U postgres -h localhost -d trainer_db -c "ALTER SCHEMA public OWNER TO trainer;"
 
 set PGPASSWORD=
-Примечание: Если PostgreSQL версии 16, замените 17 на 16 в путях.
+Примечание: Если PostgreSQL версии 16, замените 17 на 16 в путях. Путь может отличаться.
+ПРИМЕЧАНИЕ: ПУТЬ ДИРРЕКТОРИИ ПРОЕКТА НУЖНО УКАЗАТЬ СВОЙ.
 
 Шаг 3: Инициализация таблиц
 cmd
