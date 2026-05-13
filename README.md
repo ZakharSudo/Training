@@ -51,7 +51,7 @@
 
 ```bash
 # 1. Клонировать репозиторий
-git clone https://github.com/your-repo/trainer-backend.git
+git clone https://github.com/ZakharSudo/Training.git
 cd trainer-backend
 
 # 2. Создать базу данных PostgreSQL
